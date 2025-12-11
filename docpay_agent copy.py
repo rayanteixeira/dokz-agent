@@ -61,6 +61,7 @@ def save_data(data, filename, ambiente):
     output_filename = f'{output}/{filename}'
     
     data['FILENAME'] = filename
+    data['ID_INSTITUICAO_SAUDE'] = v_instituicao_saude
     data['DT_INI_CARGA'] = dt_execucao_carga_str
     data['DT_INGESTAO'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
      
@@ -527,7 +528,7 @@ def process_data(dt_inicio_exec_carga, data_inicio_carga, data_fim_carga, tipo_c
             loop = str(incr_loop).zfill(2)
             medicos_selecionados = list_cpf_medicos[i:i+tamanho_lote]
             
-            log_message(f"Processando {i + len(medicos_selecionados)}/{len(list_cpf_medicos)} médicos")
+            log_message(f"***FAZER MELHORIA. TIRAR DO LOOP E CRIAR UM MAPPING***\nProcessando {i + len(medicos_selecionados)}/{len(list_cpf_medicos)} médicos")
             tbl_dados_medicos = script0_obter_cd_medico(connection, medicos_selecionados)
             
             df_cd_pessoa_fisica = tbl_dados_medicos[['CD_PESSOA_FISICA']]
@@ -540,12 +541,14 @@ def process_data(dt_inicio_exec_carga, data_inicio_carga, data_fim_carga, tipo_c
                 continue
             
           
-
-
+            tbl_prod_medica_cpf = pd.merge(tbl_prod_medica, tbl_dados_medicos,  
+                                    left_on=[ "CD_MEDICO_EXECUTOR"],
+                                    right_on=["CD_PESSOA_FISICA"], how='left')
+            tbl_prod_medica_cpf.drop(['CD_PESSOA_FISICA', 'NM_MEDICO'], axis=1, inplace=True)
+            
             #tbl_prod_medica['CD_REGRA_PREVISTO'] = (tbl_prod_medica['CD_REGRA_PREVISTO']).round(0).astype('Int64')
             #tbl_prod_medica['NR_SEQ_CRITERIO_PREVISTO'] = (tbl_prod_medica['NR_SEQ_CRITERIO_PREVISTO']).round(0).astype('Int64')
-       
-            df_prod_regra = pd.merge(tbl_prod_medica, tbl_regras_repasse,
+            df_prod_regra = pd.merge(tbl_prod_medica_cpf, tbl_regras_repasse,
                                     left_on=[ "CD_REGRA_PREVISTO", "NR_SEQ_CRITERIO_PREVISTO"],
                                     right_on=["CD_REGRA_R", "NR_SEQ_CRITERIO_R"], how='left')
             df_prod_regra.drop(['CD_REGRA_R', 'NR_SEQ_CRITERIO_R'], axis=1, inplace=True)
