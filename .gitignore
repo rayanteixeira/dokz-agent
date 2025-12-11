@@ -1,0 +1,12 @@
+.idea
+.env
+.venv
+.vscode
+.pyc
+__pycache__
+output
+file_last_load.txt
+*.spec
+logs
+build
+dist

@@ -1,0 +1,5 @@
+__version__ = "1.0.0"
+__author__ = "DocPay App"
+__email__ = "contato@docpay.com.br"
+__url__ = "www.docpay.com.br"
+__copyright__ = "Copyright (c) 2025 DocPay App"
