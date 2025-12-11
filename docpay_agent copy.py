@@ -61,12 +61,12 @@ def save_data(data, filename, ambiente):
     output_filename = f'{output}/{filename}'
     
     data['FILENAME'] = filename
+    data['DT_INI_CARGA'] = dt_execucao_carga_str
     data['DT_INGESTAO'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
      
     if ambiente == "test":
-        #save_to_csv(data, output_filename)
-        save_to_json(data, output_filename, orient='index', lines=False)
+        save_to_csv(data, output_filename)
+        #save_to_json(data, output_filename, orient='index', lines=False)
         #save_to_parquet(data, output_filename)
     elif ambiente in ["dev", "prod"]:
         save_to_csv(data, output_filename)
@@ -85,9 +85,9 @@ def save_to_parquet(data, filename):
     data.to_parquet(f'{filename}.parquet', compression='snappy', engine='pyarrow')
     log_message(f"Arquivo Parquet criado com sucesso: {filename}")
 
-def upload_to_s3(filename, bucket, s3_key):
+def upload_to_s3(output_filename, bucket, s3_path):
     s3 = boto3.client('s3')
-    s3.upload_file(filename, bucket, s3_key)
+    s3.upload_file(output_filename, bucket, s3_path)
 
 def ifnull(var, val):
     if var is None:
@@ -434,7 +434,7 @@ def configure_exec():
     
     # Diretório do S3
     global dir_s3_date
-    dir_s3_date = dt_inicio_exec_carga.strftime('%Y_%m_%d')
+    dir_s3_date = dt_inicio_exec_carga.strftime('%Y%m%d')
     
     global date_file
     date_file = dt_inicio_exec_carga.strftime('%Y%m%d_%H%M%S')#.strftime('%Y_%m_%d_%H_%M_%S')
@@ -501,7 +501,7 @@ def process_data(dt_inicio_exec_carga, data_inicio_carga, data_fim_carga, tipo_c
         
         
         list_cpf_medicos = []
-        for medico in medicos[:25]:
+        for medico in medicos[:2]:
             list_cpf_medicos.append(medico['cpf'])
         
         #loop = 0
@@ -521,7 +521,7 @@ def process_data(dt_inicio_exec_carga, data_inicio_carga, data_fim_carga, tipo_c
 
         # Loop para percorrer o array de 50 em 50 posições
         total_medicos = len(list_cpf_medicos)
-        tamanho_lote = 5
+        tamanho_lote = 50
         for i in range(0, total_medicos, tamanho_lote):
             incr_loop += 1
             loop = str(incr_loop).zfill(2)
@@ -630,6 +630,15 @@ def process_data(dt_inicio_exec_carga, data_inicio_carga, data_fim_carga, tipo_c
             date_file_formated = f'{date_file}_part{loop}'            
             save_data(terceiro_sregra_especial, date_file_formated, ambiente)
 
+            dir_s3_zip = f'raw/{dir_s3_date}/{date_file_formated}.csv'
+            output_filename_csv = f'{output}\{date_file_formated}.csv'
+            print(f"Arquivo local: {output_filename_csv}")
+            print(f"Enviando arquivo para S3: {dir_s3_zip}")
+            print(f"Bucket: {v_bucket_s3}")
+            upload_to_s3(output_filename_csv, v_bucket_s3, dir_s3_zip)
+            # 8: Exluir arquivos gerados
+            #excluir_arquivos_em_diretorio(dir_csv, pasta=True)
+            #excluir_arquivos_em_diretorio(dir_zip, pasta=True)
         pool.release(connection)
         pool.close()
                 
